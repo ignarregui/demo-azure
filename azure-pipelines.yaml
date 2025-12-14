@@ -29,8 +29,6 @@ stages:
   - job: TerraformApply
     displayName: 'Aplicar Infraestructura'
     pool:
-      # Usar un agente autoalojado para el IaC (simulación)
-      #name: 'LocalWindows' 
       vmImage: 'ubuntu-latest'
       
     steps:
