@@ -30,8 +30,8 @@ stages:
     displayName: 'Aplicar Infraestructura'
     pool:
       # Usar un agente autoalojado para el IaC (simulación)
-      name: 'LocalWindows' 
-      # Si usaras agentes de Microsoft, sería vmImage: 'ubuntu-latest'
+      #name: 'LocalWindows' 
+      vmImage: 'ubuntu-latest'
       
     steps:
     # 1. Instalar la versión específica de Terraform
