@@ -1,0 +1,49 @@
+trigger:
+  branches:
+    include:
+      - main
+
+variables:
+  TF_WORKING_DIR: 'infra'
+
+stages:
+- stage: Infra
+  jobs:
+  - job: Terraform
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - task: TerraformInstaller@1
+      inputs:
+        terraformVersion: '1.7.5'
+
+    - task: TerraformCLI@0
+      displayName: Terraform Init
+      inputs:
+        command: 'init'
+        workingDirectory: '$(TF_WORKING_DIR)'
+
+    - task: TerraformCLI@0
+      displayName: Terraform Plan
+      inputs:
+        command: 'plan'
+        workingDirectory: '$(TF_WORKING_DIR)'
+        environmentServiceNameAzureRM: 'AZURE_SUBSCRIPTION'
+        vars: |
+          db_connection_string=$(DB_CONNECTION_STRING)
+          storage_key=$(STORAGE_KEY)
+          openai_endpoint=$(OPENAI_ENDPOINT)
+          openai_key=$(OPENAI_KEY)
+
+    - task: TerraformCLI@0
+      displayName: Terraform Apply
+      inputs:
+        command: 'apply'
+        workingDirectory: '$(TF_WORKING_DIR)'
+        environmentServiceNameAzureRM: 'AZURE_SUBSCRIPTION'
+        vars: |
+          db_connection_string=$(DB_CONNECTION_STRING)
+          storage_key=$(STORAGE_KEY)
+          openai_endpoint=$(OPENAI_ENDPOINT)
+          openai_key=$(OPENAI_KEY)
+        args: '-auto-approve'
