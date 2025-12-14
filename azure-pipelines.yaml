@@ -17,33 +17,37 @@ stages:
       inputs:
         terraformVersion: '1.7.5'
 
-    - task: TerraformCLI@0
+    - task: TerraformTask@5
       displayName: Terraform Init
       inputs:
+        provider: 'azurerm'
         command: 'init'
         workingDirectory: '$(TF_WORKING_DIR)'
+        backendServiceArm: 'AZURE_SUBSCRIPTION'  # Adjust if using a different service connection for backend
 
-    - task: TerraformCLI@0
+    - task: TerraformTask@5
       displayName: Terraform Plan
       inputs:
+        provider: 'azurerm'
         command: 'plan'
         workingDirectory: '$(TF_WORKING_DIR)'
         environmentServiceNameAzureRM: 'AZURE_SUBSCRIPTION'
-        vars: |
-          db_connection_string=$(DB_CONNECTION_STRING)
-          storage_key=$(STORAGE_KEY)
-          openai_endpoint=$(OPENAI_ENDPOINT)
-          openai_key=$(OPENAI_KEY)
+        commandOptions: |
+          -var="db_connection_string=$(DB_CONNECTION_STRING)"
+          -var="storage_key=$(STORAGE_KEY)"
+          -var="openai_endpoint=$(OPENAI_ENDPOINT)"
+          -var="openai_key=$(OPENAI_KEY)"
 
-    - task: TerraformCLI@0
+    - task: TerraformTask@5
       displayName: Terraform Apply
       inputs:
+        provider: 'azurerm'
         command: 'apply'
         workingDirectory: '$(TF_WORKING_DIR)'
         environmentServiceNameAzureRM: 'AZURE_SUBSCRIPTION'
-        vars: |
-          db_connection_string=$(DB_CONNECTION_STRING)
-          storage_key=$(STORAGE_KEY)
-          openai_endpoint=$(OPENAI_ENDPOINT)
-          openai_key=$(OPENAI_KEY)
-        args: '-auto-approve'
+        commandOptions: |
+          -var="db_connection_string=$(DB_CONNECTION_STRING)"
+          -var="storage_key=$(STORAGE_KEY)"
+          -var="openai_endpoint=$(OPENAI_ENDPOINT)"
+          -var="openai_key=$(OPENAI_KEY)"
+          -auto-approve
