@@ -1,0 +1,26 @@
+# Subir y desplegar la imagen de Docker en Azure Container App
+
+# Nota: Asegúrate de tener la CLI de Azure instalada y configurada. Reemplaza los valores con los tuyos.
+
+# 1. Hacer login en Azure (abre el navegador si es necesario)
+az login
+
+
+# 3. Instalar/actualizar la extensión de Container App si no existe
+az extension add --name containerapp --upgrade
+
+# 4. Actualizar el Container App con la imagen pública (no necesita push, ya que es pública)
+az containerapp update \
+  --name ca-clase2-esce \
+  --resource-group RG_GRUPOEJEMPLOSNUEVOS_WESTEUROPE \
+  --image ghcr.io/open-webui/open-webui:main \
+  --set-env-vars \
+    "DATABASE_URL=sqlite:///./data/webui.db" \
+    "DATA_DIR=/app/backend/data" \
+    "WEBUI_SECRET_KEY=tu_clave_secreta_aqui"
+
+# 5. Verificar el estado del Container App
+az containerapp show --name ca-clase2-esce --resource-group RG_GRUPOEJEMPLOSNUEVOS_WESTEUROPE --query "properties.configuration.ingress.fqdn"
+
+# Una vez desplegado, accede a la URL proporcionada en el paso 5 (FQDN del ingress).</content>
+<parameter name="filePath">c:\DEVS\despliegue ejemplo\prueba-cloud

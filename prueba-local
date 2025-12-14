@@ -1,0 +1,16 @@
+# traer la imagen
+
+docker pull ghcr.io/open-webui/open-webui:main
+
+# Limpiar contenedor anterior si existe
+
+docker rm -f open-webui-cei || true
+
+# Ejecutarla en local con variables de entorno necesarias
+
+docker run -d -p 3000:8080 -v open-webui:/app/backend/data --env DATABASE_URL=sqlite:///./data/webui.db --env WEBUI_SECRET_KEY=tu_clave_secreta_aqui --name open-webui-cei ghcr.io/open-webui/open-webui:main
+
+
+# Probar la aplicacion
+
+http://localhost:3000/
