@@ -1,4 +1,4 @@
-rigger: none  # Se ejecuta manualmente
+Trigger: none  # Se ejecuta manualmente
 
 variables:
 - group: openwebui-secrets  # Grupo de variables en Azure DevOps
