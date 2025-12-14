@@ -1,0 +1,53 @@
+name: Deploy Infrastructure
+
+on:
+  workflow_dispatch:  # Solo ejecución manual
+
+env:
+  AZURE_SUBSCRIPTION: ${{ secrets.AZURE_SUBSCRIPTION }}
+  CONTAINER_APP_NAME: ca-clase2-esce
+  RESOURCE_GROUP_NAME: RG_GRUPOEJEMPLOSNUEVOS_WESTEUROPE
+  LOCATION: westeurope
+  REGISTRY_URL: ghcr.io
+  IMAGE_NAME: open-webui/open-webui
+  IMAGE_TAG: main
+
+jobs:
+  deploy-infra:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Login to Azure
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Deploy Infrastructure
+      run: |
+        IMAGE_FULL_NAME="${{ env.REGISTRY_URL }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
+        
+        echo "Instalando extensión containerapp si no existe..."
+        az extension add --name containerapp --upgrade
+        
+        echo "Creando/verificando Resource Group..."
+        az group create --name ${{ env.RESOURCE_GROUP_NAME }} --location ${{ env.LOCATION }} --only-show-errors
+        
+        echo "Desplegando Container App con imagen: $IMAGE_FULL_NAME"
+        az containerapp create \
+          --name ${{ env.CONTAINER_APP_NAME }} \
+          --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
+          --image $IMAGE_FULL_NAME \
+          --environment "managedEnvironment-ca-clase2-esce" \
+          --ingress external \
+          --target-port 8080 \
+          --set-env-vars \
+            "DATABASE_URL=${{ secrets.DATABASE_URL }}" \
+            "DATA_DIR=${{ secrets.DATA_DIR }}" \
+            "WEBUI_SECRET_KEY=${{ secrets.WEBUI_SECRET_KEY }}"
+        
+        echo "Infraestructura desplegada exitosamente"
+        
+        echo "FQDN del Container App:"
+        az containerapp show --name ${{ env.CONTAINER_APP_NAME }} --resource-group ${{ env.RESOURCE_GROUP_NAME }} --query "properties.configuration.ingress.fqdn" -o tsv
