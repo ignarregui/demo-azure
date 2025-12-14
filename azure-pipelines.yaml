@@ -1,7 +1,7 @@
 trigger: none  # Se ejecuta manualmente
 
 variables:
-- group: openwebui-secrets  # Grupo de variables en Azure DevOps
+- group: openwebui  # Grupo de variables en Azure DevOps
 - name: azureSubscription
   value: 'devops_sandbox'
 - name: containerAppName
