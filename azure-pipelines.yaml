@@ -1,97 +1,58 @@
-# azure-pipelines-cd.yml: Pipeline de Entrega Continua (CD) con Terraform
+rigger: none  # Se ejecuta manualmente
 
-trigger:
-  branches:
-    include:
-      - main
-      - dev
-
-# Variables reutilizables
 variables:
-  TF_WORKING_DIR: 'infra'
-  IMAGE_NAME: 'tallerdevops.azurecr.io/openwebui-custom:$(Build.BuildId)'
-  ACR_SERVICE_CONNECTION: 'dockerRegistryServiceConnection'
-  AZURE_SUBSCRIPTION: 'AZURE_SUBSCRIPTION' # Reemplazar con el nombre de tu Service Connection
+- group: openwebui-secrets  # Grupo de variables en Azure DevOps
+- name: azureSubscription
+  value: 'devops_sandbox'
+- name: containerAppName
+  value: 'openwebui'
+- name: resourceGroupName
+  value: 'RGWETISandbox'
+- name: registryUrl
+  value: 'ghcr.io'     
+- name: imageName
+  value: 'open-webui/open-webui'         
+- name: imageTag
+  value: 'main'
+- name: imageFullName
+  value: '$(registryUrl)/$(imageName):$(imageTag)'
 
-# ----------------------------------------------------------------------
-# STAGE 1: INFRA - Despliega o actualiza la infraestructura con Terraform
-# ----------------------------------------------------------------------
 stages:
-- stage: Infra
-  displayName: '1. Despliegue de Infraestructura (Terraform)'
-
+- stage: UpdateContainerApp
+  displayName: 'Actualizar Container App con última imagen pública'
   jobs:
-  - job: TerraformApply
-    displayName: 'Aplicar Infraestructura'
-    demands:
-      - Agent.Name -equals surface-laptop
+  - job: Update
     pool:
-      name: 'LocalWindows'
-
+      name: 'Default'
     steps:
-    - task: TerraformInstaller@1
-      displayName: 'Instalar Terraform'
+    - task: AzureCLI@2
       inputs:
-        terraformVersion: '1.7.5'
-
-    - task: TerraformTask@5
-      displayName: 'Terraform Init'
-      inputs:
-        provider: 'azurerm'
-        command: 'init'
-        workingDirectory: '$(TF_WORKING_DIR)'
-        backendServiceArm: '$(AZURE_SUBSCRIPTION)'
-
-    - task: TerraformTask@5
-      displayName: 'Terraform Plan'
-      inputs:
-        provider: 'azurerm'
-        command: 'plan'
-        workingDirectory: '$(TF_WORKING_DIR)'
-        environmentServiceNameAzureRM: '$(AZURE_SUBSCRIPTION)'
-        commandOptions: |
-          -var="db_connection_string=$(DB_CONNECTION_STRING)"
-          -var="storage_key=$(STORAGE_KEY)"
-
-    - task: TerraformTask@5
-      displayName: 'Terraform Apply y Guardar Salidas'
-      inputs:
-        provider: 'azurerm'
-        command: 'apply'
-        workingDirectory: '$(TF_WORKING_DIR)'
-        environmentServiceNameAzureRM: '$(AZURE_SUBSCRIPTION)'
-        commandOptions: |
-          -var="db_connection_string=$(DB_CONNECTION_STRING)"
-          -var="storage_key=$(STORAGE_KEY)"
-          -auto-approve
-        outputServiceConnection: '$(AZURE_SUBSCRIPTION)'
-        outputVariables: AZURE_WEBAPP_NAME
-
-# ----------------------------------------------------------------------
-# STAGE 2: DEPLOYAPP - Despliega el contenedor de OpenWebUI en la Infra creada
-# ----------------------------------------------------------------------
-- stage: DeployApp
-  displayName: '2. Despliegue de Aplicación Contenedor'
-  dependsOn: Infra
-
-  jobs:
-  - job: Deploy
-    displayName: 'Desplegar OpenWebUI'
-    demands:
-      - Agent.Name -equals surface-laptop
-    pool:
-      name: 'LocalWindows'
-
-    steps:
-    - task: AzureRmWebAppDeployment@4
-      displayName: 'Desplegar Imagen Docker y Configurar App'
-      inputs:
-        AzureSubscription: '$(AZURE_SUBSCRIPTION)'
-        WebAppName: '$(AZURE_WEBAPP_NAME)'
-        DeploymentType: 'Container'
-        DockerImage: '$(IMAGE_NAME)'
-        DockerRegistryServiceConnection: '$(ACR_SERVICE_CONNECTION)'
-        AppSettings: |
-          - AZURE_OPENAI_ENDPOINT $(OPENAI_ENDPOINT)
-          - DB_HOST $(DB_HOST_FROM_TERRAFORM_OUTPUT)
-          - PORT 8080
+        azureSubscription: $(azureSubscription)
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
+          echo "Instalando extensión containerapp si no existe..."
+          az extension add --name containerapp --upgrade
+          
+          echo "Imagen a utilizar: $(imageFullName)"
+          
+          echo "Haciendo pull de la última imagen pública openwebui para evitar caché..."
+          docker pull $(imageFullName)
+          
+          echo "Verificando imagen descargada..."
+          docker images | grep "open-webui"
+          
+          echo "Actualizando Container App con la nueva imagen..."
+          az containerapp update \
+            --name $(containerAppName) \
+            --resource-group $(resourceGroupName) \
+            --image $(imageFullName) \
+            --set-env-vars \
+              "DATABASE_URL=$(DATABASE_URL)" \
+              "DATA_DIR=$(DATA_DIR)" \
+              "WEBUI_SECRET_KEY=$(WEBUI_SECRET_KEY)"
+          
+          echo "Container App actualizado exitosamente"
+          
+          echo "Limpiando imagen local para liberar espacio..."
+          docker rmi $(imageFullName) || true
