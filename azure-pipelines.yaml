@@ -5,13 +5,21 @@ trigger:
 
 variables:
   TF_WORKING_DIR: 'infra'
-
+  # Clase 1: El nombre de la imagen Docker que publicamos en ACR
+  IMAGE_NAME: 'tallerdevops.azurecr.io/openwebui-custom:$(Build.BuildId)' 
+  # Clase 1: Nombre de la Service Connection al ACR
+  ACR_SERVICE_CONNECTION: 'acr-connection-taller' 
+  
 stages:
-- stage: Infra
+- stage: Infra # ETAPA 1: Desplegar Infraestructura con Terraform
+  displayName: '1. Despliegue de Infraestructura'
   jobs:
   - job: Terraform
+    displayName: 'Aplicar Infraestructura'
     pool:
-      vmImage: 'ubuntu-latest'
+      # Si usas un agente autoalojado, 'LocalWindows' funciona.
+      # Si simulas la ejecución, podrías usar: vmImage: 'ubuntu-latest'
+      name: 'LocalWindows' 
     steps:
     - task: TerraformInstaller@1
       inputs:
@@ -23,7 +31,7 @@ stages:
         provider: 'azurerm'
         command: 'init'
         workingDirectory: '$(TF_WORKING_DIR)'
-        backendServiceArm: 'AZURE_SUBSCRIPTION'  # Adjust if using a different service connection for backend
+        backendServiceArm: 'AZURE_SUBSCRIPTION' 
 
     - task: TerraformTask@5
       displayName: Terraform Plan
@@ -33,13 +41,16 @@ stages:
         workingDirectory: '$(TF_WORKING_DIR)'
         environmentServiceNameAzureRM: 'AZURE_SUBSCRIPTION'
         commandOptions: |
+          # NOTA: En un pipeline real, estos valores vendrían de Azure Key Vault o de Variables Seguras.
           -var="db_connection_string=$(DB_CONNECTION_STRING)"
           -var="storage_key=$(STORAGE_KEY)"
+          # NOTA: Quita las claves de OpenAI si ya las estás gestionando en Key Vault vía Terraform.
           -var="openai_endpoint=$(OPENAI_ENDPOINT)"
           -var="openai_key=$(OPENAI_KEY)"
 
+    # NUEVO PASO CLAVE: Guardar las salidas (Outputs) de Terraform como variables de Azure DevOps
     - task: TerraformTask@5
-      displayName: Terraform Apply
+      displayName: Terraform Apply y Guardar Salidas
       inputs:
         provider: 'azurerm'
         command: 'apply'
@@ -51,3 +62,34 @@ stages:
           -var="openai_endpoint=$(OPENAI_ENDPOINT)"
           -var="openai_key=$(OPENAI_KEY)"
           -auto-approve
+        # Esta opción busca el output 'webapp_name' de Terraform y lo guarda como variable AZURE_WEBAPP_NAME
+        outputServiceConnection: 'AZURE_SUBSCRIPTION'
+        outputVariables: AZURE_WEBAPP_NAME
+        
+# ----------------------------------------------------------------------------------------------------
+
+- stage: DeployApp # ETAPA 2: Desplegar la Aplicación (Contenedor)
+  displayName: '2. Despliegue de Aplicación Contenedor'
+  # Asegura que la aplicación no se despliegue si la Infra falla
+  dependsOn: Infra 
+  
+  jobs:
+  - job: Deploy
+    displayName: 'Desplegar OpenWebUI'
+    pool:
+      name: 'LocalWindows'
+    steps:
+    
+    # 1. Tarea de despliegue de Azure Web App for Containers (si usas Web App)
+    - task: AzureWebAppContainerDeploy@1
+      displayName: 'Desplegar Imagen Docker'
+      inputs:
+        azureSubscription: 'AZURE_SUBSCRIPTION'
+        appName: '$(AZURE_WEBAPP_NAME)' # Usamos el output de Terraform
+        containers: '$(IMAGE_NAME)'      # La imagen Docker de la Clase 1
+        # Configuramos la autenticación para que acceda al ACR
+        AcrName: '$(ACR_SERVICE_CONNECTION)'
+        # Este paso también puede inyectar variables de entorno (AppSettings)
+        appSettings: |
+          - AZURE_OPENAI_ENDPOINT $(OPENAI_ENDPOINT)
+          - DB_HOST $(DB_HOST_FROM_TERRAFORM_OUTPUT) # Usar otros outputs de Terraform
