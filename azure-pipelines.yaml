@@ -1,4 +1,8 @@
-trigger: none  # Se ejecuta manualmente
+trigger:  # Se ejecuta manualmente
+  branches:
+    include:
+      - main
+      - dev
 
 variables:
 - group: openwebui  # Grupo de variables en Azure DevOps
