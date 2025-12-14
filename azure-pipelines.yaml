@@ -4,6 +4,7 @@ trigger:
   branches:
     include:
       - main
+      - dev
   # Este pipeline se ejecuta después de que el pipeline CI ha publicado el artefacto
   # CI debe tener un 'pipelineResource' definido para activarlo si fuera completamente separado
 
