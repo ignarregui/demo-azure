@@ -15,8 +15,8 @@ variables:
   
   # Variables inyectadas desde el Pipeline de CI (Clase 1) o definidas manualmente
   IMAGE_NAME: 'tallerdevops.azurecr.io/openwebui-custom:$(Build.BuildId)' 
-  ACR_SERVICE_CONNECTION: 'acr-connection-taller' 
-  AZURE_SUBSCRIPTION: 'AZURE_SUBSCRIPTION_NAME' # Reemplazar con el nombre de tu Service Connection
+  ACR_SERVICE_CONNECTION: 'dockerRegistryServiceConnection' 
+  AZURE_SUBSCRIPTION: 'AZURE_SUBSCRIPTION' # Reemplazar con el nombre de tu Service Connection
 
 # ----------------------------------------------------------------------
 # STAGE 1: INFRA - Despliega o actualiza la infraestructura con Terraform
