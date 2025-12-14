@@ -28,10 +28,10 @@ stages:
   jobs:
   - job: TerraformApply
     displayName: 'Aplicar Infraestructura'
-    pool:
-      name: 'LocalWindows'
     demands:
       - Agent.Name -equals surface-laptop
+    pool:
+      name: 'LocalWindows'
       
     steps:
     # 1. Instalar la versión específica de Terraform
@@ -88,10 +88,10 @@ stages:
   jobs:
   - job: Deploy
     displayName: 'Desplegar OpenWebUI'
-    pool:
-      name: 'LocalWindows'
     demands:
       - Agent.Name -equals surface-laptop
+    pool:
+      name: 'LocalWindows'
       
     steps:
     
