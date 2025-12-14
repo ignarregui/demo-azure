@@ -87,7 +87,7 @@ stages:
   - job: Deploy
     displayName: 'Desplegar OpenWebUI'
     pool:
-      name: 'LocalWindows'
+      vmImage: 'ubuntu-latest'
       
     steps:
     
