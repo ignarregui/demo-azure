@@ -5,17 +5,12 @@ trigger:
     include:
       - main
       - dev
-  # Este pipeline se ejecuta después de que el pipeline CI ha publicado el artefacto
-  # CI debe tener un 'pipelineResource' definido para activarlo si fuera completamente separado
 
 # Variables reutilizables
 variables:
-  # Ubicación de los archivos Terraform en el repositorio (Clase 2)
   TF_WORKING_DIR: 'infra'
-  
-  # Variables inyectadas desde el Pipeline de CI (Clase 1) o definidas manualmente
-  IMAGE_NAME: 'tallerdevops.azurecr.io/openwebui-custom:$(Build.BuildId)' 
-  ACR_SERVICE_CONNECTION: 'dockerRegistryServiceConnection' 
+  IMAGE_NAME: 'tallerdevops.azurecr.io/openwebui-custom:$(Build.BuildId)'
+  ACR_SERVICE_CONNECTION: 'dockerRegistryServiceConnection'
   AZURE_SUBSCRIPTION: 'AZURE_SUBSCRIPTION' # Reemplazar con el nombre de tu Service Connection
 
 # ----------------------------------------------------------------------
@@ -24,7 +19,7 @@ variables:
 stages:
 - stage: Infra
   displayName: '1. Despliegue de Infraestructura (Terraform)'
-  
+
   jobs:
   - job: TerraformApply
     displayName: 'Aplicar Infraestructura'
@@ -32,24 +27,21 @@ stages:
       - Agent.Name -equals surface-laptop
     pool:
       name: 'LocalWindows'
-      
+
     steps:
-    # 1. Instalar la versión específica de Terraform
     - task: TerraformInstaller@1
       displayName: 'Instalar Terraform'
       inputs:
         terraformVersion: '1.7.5'
 
-    # 2. Inicializar Terraform (descarga el backend y los proveedores)
     - task: TerraformTask@5
       displayName: 'Terraform Init'
       inputs:
         provider: 'azurerm'
         command: 'init'
         workingDirectory: '$(TF_WORKING_DIR)'
-        backendServiceArm: '$(AZURE_SUBSCRIPTION)' # Conexión para el backend de estado
+        backendServiceArm: '$(AZURE_SUBSCRIPTION)'
 
-    # 3. Planificar Terraform (muestra los cambios)
     - task: TerraformTask@5
       displayName: 'Terraform Plan'
       inputs:
@@ -58,11 +50,9 @@ stages:
         workingDirectory: '$(TF_WORKING_DIR)'
         environmentServiceNameAzureRM: '$(AZURE_SUBSCRIPTION)'
         commandOptions: |
-          # NOTA: Estos 'var' deben coincidir con las variables definidas en tu código .tf
           -var="db_connection_string=$(DB_CONNECTION_STRING)"
           -var="storage_key=$(STORAGE_KEY)"
 
-    # 4. Aplicar los cambios de Infraestructura (Crea los 6 recursos)
     - task: TerraformTask@5
       displayName: 'Terraform Apply y Guardar Salidas'
       inputs:
@@ -74,17 +64,16 @@ stages:
           -var="db_connection_string=$(DB_CONNECTION_STRING)"
           -var="storage_key=$(STORAGE_KEY)"
           -auto-approve
-        # CLAVE: Guarda el nombre de la Web App creada por Terraform como variable de Pipeline
         outputServiceConnection: '$(AZURE_SUBSCRIPTION)'
-        outputVariables: AZURE_WEBAPP_NAME # Nombre de la variable que contendrá el output de Terraform
+        outputVariables: AZURE_WEBAPP_NAME
 
 # ----------------------------------------------------------------------
 # STAGE 2: DEPLOYAPP - Despliega el contenedor de OpenWebUI en la Infra creada
 # ----------------------------------------------------------------------
 - stage: DeployApp
   displayName: '2. Despliegue de Aplicación Contenedor'
-  dependsOn: Infra # Asegura que la infraestructura esté lista antes de desplegar la App
-  
+  dependsOn: Infra
+
   jobs:
   - job: Deploy
     displayName: 'Desplegar OpenWebUI'
@@ -92,26 +81,17 @@ stages:
       - Agent.Name -equals surface-laptop
     pool:
       name: 'LocalWindows'
-      
+
     steps:
-    
-    # 1. Despliegue de Contenedor en Azure App Service (Web App for Containers)
-    - task: AzureRmWebAppDeployment@4 
+    - task: AzureRmWebAppDeployment@4
       displayName: 'Desplegar Imagen Docker y Configurar App'
       inputs:
-        # Credenciales de Azure
-        AzureSubscription: '$(AZURE_SUBSCRIPTION)' 
-        # Nombre de la Web App obtenido del output de Terraform
-        WebAppName: '$(AZURE_WEBAPP_NAME)' 
-        
-        # Configuración del Contenedor
-        DeploymentType: 'Container' 
-        DockerImage: '$(IMAGE_NAME)' 
-        DockerRegistryServiceConnection: '$(ACR_SERVICE_CONNECTION)' 
-        
-        # Inyección de Variables de Entorno (AppSettings)
-        # Aquí se inyectan variables sensibles o de configuración, como la clave de OpenAI
+        AzureSubscription: '$(AZURE_SUBSCRIPTION)'
+        WebAppName: '$(AZURE_WEBAPP_NAME)'
+        DeploymentType: 'Container'
+        DockerImage: '$(IMAGE_NAME)'
+        DockerRegistryServiceConnection: '$(ACR_SERVICE_CONNECTION)'
         AppSettings: |
           - AZURE_OPENAI_ENDPOINT $(OPENAI_ENDPOINT)
-          - DB_HOST $(DB_HOST_FROM_TERRAFORM_OUTPUT) # Si Terraform expone esta conexión
+          - DB_HOST $(DB_HOST_FROM_TERRAFORM_OUTPUT)
           - PORT 8080
