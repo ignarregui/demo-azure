@@ -1,0 +1,57 @@
+name: Update Container App
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  workflow_dispatch:  # Permite ejecución manual
+
+env:
+  AZURE_SUBSCRIPTION: ${{ secrets.AZURE_SUBSCRIPTION }}
+  CONTAINER_APP_NAME: ca-clase2-esce
+  RESOURCE_GROUP_NAME: RG_GRUPOEJEMPLOSNUEVOS_WESTEUROPE
+  REGISTRY_URL: ghcr.io
+  IMAGE_NAME: open-webui/open-webui
+  IMAGE_TAG: main
+  IMAGE_FULL_NAME: ${{ env.REGISTRY_URL }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+
+jobs:
+  update-container-app:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Login to Azure
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Update Container App
+      run: |
+        echo "Instalando extensión containerapp si no existe..."
+        az extension add --name containerapp --upgrade
+        
+        echo "Imagen a utilizar: ${{ env.IMAGE_FULL_NAME }}"
+        
+        echo "Haciendo pull de la última imagen pública openwebui para evitar caché..."
+        docker pull ${{ env.IMAGE_FULL_NAME }}
+        
+        echo "Verificando imagen descargada..."
+        docker images | grep "open-webui"
+        
+        echo "Actualizando Container App con la nueva imagen..."
+        az containerapp update \
+          --name ${{ env.CONTAINER_APP_NAME }} \
+          --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
+          --image ${{ env.IMAGE_FULL_NAME }} \
+          --set-env-vars \
+            "DATABASE_URL=${{ secrets.DATABASE_URL }}" \
+            "DATA_DIR=${{ secrets.DATA_DIR }}" \
+            "WEBUI_SECRET_KEY=${{ secrets.WEBUI_SECRET_KEY }}"
+        
+        echo "Container App actualizado exitosamente"
+        
+        echo "Limpiando imagen local para liberar espacio..."
+        docker rmi ${{ env.IMAGE_FULL_NAME }} || true
