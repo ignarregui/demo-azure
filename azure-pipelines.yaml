@@ -7,11 +7,11 @@ trigger:  # Se ejecuta manualmente
 variables:
 - group: openwebui  # Grupo de variables en Azure DevOps
 - name: azureSubscription
-  value: 'devops_sandbox'
+  value: 'AZURE_SUBSCRIPTION'  # Reemplazar con el nombre de la suscripción de Azure DevOps
 - name: containerAppName
-  value: 'openwebui'
+  value: 'ca-clase2-esce'
 - name: resourceGroupName
-  value: 'RGWETISandbox'
+  value: 'RG_GRUPOEJEMPLOSNUEVOS_WESTEUROPE'
 - name: registryUrl
   value: 'ghcr.io'     
 - name: imageName
