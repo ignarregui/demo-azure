@@ -42,20 +42,20 @@ resource "azurerm_container_app" "app" {
       cpu    = 1
       memory = "2Gi"
       env {
-        name        = "DB_CONNECTION_STRING"
-        secret_name = "dbconn"
+        name  = "DB_CONNECTION_STRING"
+        value = var.db_connection_string
       }
       env {
-        name        = "STORAGE_KEY"
-        secret_name = "storagekey"
+        name  = "STORAGE_KEY"
+        value = var.storage_key
       }
       env {
-        name        = "OPENAI_ENDPOINT"
-        secret_name = "openaiendpoint"
+        name  = "OPENAI_ENDPOINT"
+        value = var.openai_endpoint
       }
       env {
-        name        = "OPENAI_KEY"
-        secret_name = "openaikey"
+        name  = "OPENAI_KEY"
+        value = var.openai_key
       }
     }
   }
@@ -64,9 +64,4 @@ resource "azurerm_container_app" "app" {
     external_enabled = true
     target_port      = 8080
   }
-
-  secret { name = "dbconn" value = var.db_connection_string }
-  secret { name = "storagekey" value = var.storage_key }
-  secret { name = "openaiendpoint" value = var.openai_endpoint }
-  secret { name = "openaikey" value = var.openai_key }
 }

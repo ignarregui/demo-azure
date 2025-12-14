@@ -29,7 +29,9 @@ stages:
   - job: TerraformApply
     displayName: 'Aplicar Infraestructura'
     pool:
-      vmImage: 'ubuntu-latest'
+      name: 'LocalWindows'
+    demands:
+      - Agent.Name -equals surface-laptop
       
     steps:
     # 1. Instalar la versión específica de Terraform
@@ -87,7 +89,9 @@ stages:
   - job: Deploy
     displayName: 'Desplegar OpenWebUI'
     pool:
-      vmImage: 'ubuntu-latest'
+      name: 'LocalWindows'
+    demands:
+      - Agent.Name -equals surface-laptop
       
     steps:
     
