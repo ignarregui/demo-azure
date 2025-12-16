@@ -11,11 +11,7 @@ variables:
 - name: containerAppName
   value: 'ca-clase2-esce'
 - name: resourceGroupName
-  value: 'RG_GRUPOEJEMPLOSNUEVOS_WESTEUROPE'
-- name: registryUrl
-  value: 'ghcr.io'     
-- name: imageName
-  value: 'open-webui/open-webui'         
+  value: 'RG_GRUPOEJEMPLOSNUEVOS_WESTEUROPE'  
 - name: imageTag
   value: 'main'
 - name: imageFullName
@@ -41,7 +37,7 @@ stages:
           echo "Imagen a utilizar: $(imageFullName)"
           
           echo "Haciendo pull de la última imagen pública openwebui para evitar caché..."
-          docker pull $(imageFullName)
+          docker pull ghcr.io/open-webui/open-webui:main
           
           echo "Verificando imagen descargada..."
           docker images | grep "open-webui"
