@@ -27,7 +27,7 @@ stages:
   jobs:
   - job: Update
     pool:
-      name: 'Default'
+      vmImage: ubuntu-latest
     steps:
     - task: AzureCLI@2
       inputs:
