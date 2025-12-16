@@ -18,7 +18,7 @@ variables:
   value: '$(registryUrl)/$(imageName):$(imageTag)'
 
 stages:
-- stage: UpdateContainerApp
+- stage: SUbir imagen a container app
   displayName: 'Actualizar Container App con última imagen pública'
   jobs:
   - job: Update
