@@ -12,3 +12,5 @@ Este repositorio despliega la infraestructura y aplicación OpenWebUI en Azure u
 - RG: `rg-openwebui`
 - Container App: `openwebui-app`
 - Imagen: `ghcr.io/open-webui/open-webui:main`
+
+## Test
